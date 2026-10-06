@@ -68,7 +68,7 @@ tr:nth-child(4n+2),tr:nth-child(4n+3){background:#fbfcfd}
 <div>
 <ol>
 <li>Each player gets <b>four digit cards</b> each round.</li>
-<li>Use all four digits <b>exactly once</b> to make two fractions.</li>
+<li>Use all four numbers shown on your cards <b>exactly once</b> to make two fractions. Type the numbers into the dividend and divisor boxes.</li>
 <li>Choose which fraction is the <b>dividend</b> and which is the <b>divisor</b>.</li>
 <li>Submit your division. The quotient is simplified automatically.</li>
 <li>Your quotient is added to your running total. You <b>cannot go over 10</b>.</li>
@@ -77,15 +77,13 @@ tr:nth-child(4n+2),tr:nth-child(4n+3){background:#fbfcfd}
 <p class="small">No card switching. If no legal arrangement can keep your total at or below 10, use “No Legal Move” to score 0 for the round.</p>
 </div>
 <div class="model">
-<div>
-<span class="vocab">DIVIDEND</span><br>
-<span class="frac"><span class="top">4</span><span class="bottom">3</span></span>
-&nbsp; ÷ &nbsp;
-<span class="frac"><span class="top">2</span><span class="bottom">5</span></span>
-&nbsp; = &nbsp;
-<span class="frac"><span class="top">10</span><span class="bottom">3</span></span>
-&nbsp; = 3 <span class="frac"><span class="top">1</span><span class="bottom">3</span></span>
-<br><span class="vocab">DIVIDEND &nbsp;&nbsp;&nbsp;&nbsp; DIVISOR &nbsp;&nbsp;&nbsp;&nbsp; QUOTIENT</span>
+<div style="font-weight:800;margin-bottom:14px;">dividend ÷ divisor = quotient</div>
+<div style="display:flex;justify-content:center;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+  <div><span class="frac"><span class="top">4</span><span class="bottom">3</span></span><div class="vocab" style="margin-top:8px;">DIVIDEND</div></div>
+  <div style="padding-top:8px;">÷</div>
+  <div><span class="frac"><span class="top">2</span><span class="bottom">5</span></span><div class="vocab" style="margin-top:8px;">DIVISOR</div></div>
+  <div style="padding-top:8px;">=</div>
+  <div><span class="frac"><span class="top">10</span><span class="bottom">3</span></span> = 3 <span class="frac"><span class="top">1</span><span class="bottom">3</span></span><div class="vocab" style="margin-top:8px;">QUOTIENT</div></div>
 </div>
 </div>
 </div>
@@ -157,13 +155,14 @@ function submit(p){
  const vals=["an","ad","bn","bd"].map(k=>Number(root.querySelector(`[data-k="${k}"]`).value));
  const status=root.querySelector(".status");
  if(vals.some(v=>!Number.isInteger(v))){msg(status,"Enter one whole-number digit in each box.",true);return}
- if(!usedExactly(state.players[p].cards,vals)){msg(status,"Use each of your four digit cards exactly once.",true);return}
+ if(!usedExactly(state.players[p].cards,vals)){msg(status,"Use each of the four numbers shown on your cards exactly once.",true);return}
  if(vals[1]===0||vals[3]===0){msg(status,"A denominator cannot be 0.",true);return}
+ const Araw={n:vals[0],d:vals[1]}, Braw={n:vals[2],d:vals[3]};
  const A=norm(vals[0],vals[1]),B=norm(vals[2],vals[3]);
  if(B.n===0){msg(status,"The divisor cannot equal 0.",true);return}
  const q=div(A,B), old=state.players[p].total, next=add(old,q);
  if(cmp(next,{n:TARGET,d:1})>0){msg(status,`That quotient is ${fmt(q)}, which would make your total ${fmt(next)} — over 10. Try another arrangement.`,true);return}
- record(p,A,B,q,old,next);
+ record(p,Araw,Braw,q,old,next);
  state.players[p].total=next;
  if(cmp(next,{n:10,d:1})===0){state.ended=true;finish(`Player ${p+1} reached exactly 10 and wins!`);return}
  advance(p);
@@ -176,8 +175,9 @@ function noMove(p){
  state.records.push({round:state.round,p,A:"—",B:"—",q:"0",work:`${fmt(old)} + 0 = ${fmt(old)}`});
  advance(p);
 }
+function rawFrac(f){return `${f.n}/${f.d}`}
 function record(p,A,B,q,old,next){
- state.records.push({round:state.round,p,A:fmt(A),B:fmt(B),q:fmt(q),work:`${fmt(old)} + ${fmt(q)} = ${fmt(next)}`});
+ state.records.push({round:state.round,p,A:rawFrac(A),B:rawFrac(B),q:fmt(q),work:`${fmt(old)} + ${fmt(q)} = ${fmt(next)}`});
 }
 function advance(p){
  state.players[p].done=true;
@@ -199,7 +199,7 @@ function playerHTML(p){
  const pl=state.players[p], active=!state.ended&&state.turn===p;
  return `<section class="panel player" data-player="${p}">
  <h2>Player ${p+1}</h2>
- <div class="small">${active?"Your turn — arrange all four cards.":pl.done?"Round complete.":"Waiting for Player "+(state.turn+1)+"."}</div>
+ <div class="small">${active?"Your turn — use all four numbers to create two fractions.":pl.done?"Round complete.":"Waiting for Player "+(state.turn+1)+"."}</div>
  <div class="cards">${pl.cards.map(x=>`<div class="digit">${x}</div>`).join("")}</div>
  <div class="builder">
   <div class="fraction-input"><label>DIVIDEND</label><div class="fraction-box"><input data-k="an" inputmode="numeric" ${active?"":"disabled"} aria-label="Dividend numerator"><input data-k="ad" inputmode="numeric" ${active?"":"disabled"} aria-label="Dividend denominator"></div></div>
@@ -207,7 +207,7 @@ function playerHTML(p){
   <div class="fraction-input"><label>DIVISOR</label><div class="fraction-box"><input data-k="bn" inputmode="numeric" ${active?"":"disabled"} aria-label="Divisor numerator"><input data-k="bd" inputmode="numeric" ${active?"":"disabled"} aria-label="Divisor denominator"></div></div>
  </div>
  <div class="actions"><button class="primary submit" ${active?"":"disabled"}>Submit Quotient</button><button class="secondary nomove" ${active?"":"disabled"}>No Legal Move</button></div>
- <div class="status">${active?"Use all four cards exactly once.":""}</div>
+ <div class="status">${active?"Use all four numbers exactly once.":""}</div>
  </section>`;
 }
 function render(){
